@@ -3,6 +3,7 @@ import type {
   MicroCMSQueries,
   MicroCMSImage,
   MicroCMSListContent,
+  MicroCMSListResponse,
 } from "microcms-js-sdk";
 
 export type Member = {
@@ -24,20 +25,22 @@ export type News = {
   category: Category;
 } & MicroCMSListContent;
 
-if (!process.env.MICROCMS_SERVICE_DOMAIN) {
-  throw new Error("MICROCMS_SERVICE_DOMAIN is required");
-}
+const hasEnvVars =
+  process.env.MICROCMS_SERVICE_DOMAIN && process.env.MICROCMS_API_KEY;
 
-if (!process.env.MICROCMS_API_KEY) {
-  throw new Error("MICROCMS_API_KEY is required");
-}
+const client = hasEnvVars
+  ? createClient({
+      serviceDomain: process.env.MICROCMS_SERVICE_DOMAIN!,
+      apiKey: process.env.MICROCMS_API_KEY!,
+    })
+  : null;
 
-const client = createClient({
-  serviceDomain: process.env.MICROCMS_SERVICE_DOMAIN,
-  apiKey: process.env.MICROCMS_API_KEY,
-});
-
-export const getMembersList = async (queries?: MicroCMSQueries) => {
+export const getMembersList = async (
+  queries?: MicroCMSQueries
+): Promise<MicroCMSListResponse<Member>> => {
+  if (!client) {
+    return { contents: [], totalCount: 0, offset: 0, limit: 0 };
+  }
   const listData = await client.getList<Member>({
     endpoint: "members",
     queries,
@@ -45,7 +48,12 @@ export const getMembersList = async (queries?: MicroCMSQueries) => {
   return listData;
 };
 
-export const getNewsList = async (queries?: MicroCMSQueries) => {
+export const getNewsList = async (
+  queries?: MicroCMSQueries
+): Promise<MicroCMSListResponse<News>> => {
+  if (!client) {
+    return { contents: [], totalCount: 0, offset: 0, limit: 0 };
+  }
   const listData = await client.getList<News>({
     endpoint: "news",
     queries,
@@ -56,7 +64,10 @@ export const getNewsList = async (queries?: MicroCMSQueries) => {
 export const getNewsDetail = async (
   contentId: string,
   queries?: MicroCMSQueries
-) => {
+): Promise<News | null> => {
+  if (!client) {
+    return null;
+  }
   const detailData = await client.getListDetail<News>({
     endpoint: "news",
     contentId,
@@ -74,7 +85,10 @@ export const getNewsDetail = async (
 export const getCategoryDetail = async (
   contentId: string,
   queries?: MicroCMSQueries
-) => {
+): Promise<Category | null> => {
+  if (!client) {
+    return null;
+  }
   const detailData = await client.getListDetail<Category>({
     endpoint: "categories",
     contentId,
@@ -84,7 +98,10 @@ export const getCategoryDetail = async (
   return detailData;
 };
 
-export const getAllNewsList = async () => {
+export const getAllNewsList = async (): Promise<News[]> => {
+  if (!client) {
+    return [];
+  }
   const listData = await client.getAllContents<News>({
     endpoint: "news",
   });
@@ -92,7 +109,10 @@ export const getAllNewsList = async () => {
   return listData;
 };
 
-export const getAllCategoryList = async () => {
+export const getAllCategoryList = async (): Promise<Category[]> => {
+  if (!client) {
+    return [];
+  }
   const listData = await client.getAllContents<Category>({
     endpoint: "categories",
   });
